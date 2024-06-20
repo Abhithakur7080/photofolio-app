@@ -1,4 +1,4 @@
-<h1 align="center" style="font-size: 36px;"><img src="https://github.com/Abhithakur7080/photofolio-app/assets/119639453/1c57ebff-ba14-483d-8619-a835599df4dc" width=30/> SHOPIE</h1>
+<h1 align="center" style="font-size: 45px;"><img src="https://github.com/Abhithakur7080/photofolio-app/assets/119639453/1c57ebff-ba14-483d-8619-a835599df4dc" width=30/> PHOTOFOLIO</h1>
 
 This project is built using only React.js no any routes available.
 
