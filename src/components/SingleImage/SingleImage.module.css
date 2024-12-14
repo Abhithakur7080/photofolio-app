@@ -84,3 +84,15 @@
     transform: scale(1);
   }
 }
+@media (max-width: 768px) {
+    .mainContainer .header{
+        justify-content: flex-start;
+        flex-direction: column-reverse;
+    }
+    .header h1{
+        text-align: center;
+    }
+    .header ul {
+        width: 80%;
+    }
+}
