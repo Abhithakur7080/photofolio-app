@@ -83,7 +83,9 @@
     -webkit-transform: scale(1);
     transform: scale(1);
   }
+  
 }
+/* media screen */
 @media (max-width: 768px) {
     .mainContainer .header{
         justify-content: flex-start;
