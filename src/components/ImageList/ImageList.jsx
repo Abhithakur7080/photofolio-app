@@ -29,6 +29,7 @@ const ImageList = ({ album, onBackClick }) => {
   const [images, setImages] = useState([]);
   const [editImageId, setEditImageId] = useState(null);
   const [viewImage, setViewImage] = useState(null);
+  const [currentIndex, setCurrentIndex] = useState(0); // Track the currently viewed image index
 
   const uploadFile = (path, file) => {
     return new Promise((resolve, reject) => {
@@ -42,19 +43,12 @@ const ImageList = ({ album, onBackClick }) => {
         },
         (error) => {
           console.log(error);
-          console.log("Something went wrong!");
           reject(error);
         },
         () => {
           getDownloadURL(uploadTask.snapshot.ref)
-            .then((downloadURL) => {
-              console.log("Upload is 100% done");
-              resolve(downloadURL);
-            })
-            .catch((error) => {
-              console.log(error);
-              reject(error);
-            });
+            .then((downloadURL) => resolve(downloadURL))
+            .catch((error) => reject(error));
         }
       );
     });
@@ -62,31 +56,28 @@ const ImageList = ({ album, onBackClick }) => {
 
   const handleToggleForm = () => {
     setShowForm(!showForm);
-    handleClearInput(); // Reset inputs when toggling
+    handleClearInput();
   };
 
   const handleAddImage = async () => {
     try {
-      let imgUrl = imageUrl; // Use the existing state as default
+      let imgUrl = imageUrl;
       if (imageFile) {
-        // If a new file is uploaded, get the URL
         imgUrl = await uploadFile(`images/${imageFile.name}`, imageFile);
       }
 
       if (editImageId) {
-        // Update existing image
         await setDoc(doc(db, "images", editImageId), {
-          albumId : album.id,
+          albumId: album.id,
           title,
-          imageUrl: imgUrl, // Use the latest imgUrl
+          imageUrl: imgUrl,
         });
         toast.success("Image Updated Successfully");
       } else {
-        // Add new image
         await addDoc(collection(db, "images"), {
-          albumId : album.id,
+          albumId: album.id,
           title,
-          imageUrl: imgUrl, // Use the latest imgUrl
+          imageUrl: imgUrl,
         });
         toast.success("Image Added Successfully");
       }
@@ -119,9 +110,21 @@ const ImageList = ({ album, onBackClick }) => {
   const handleEditImage = (image) => {
     setTitle(image.title);
     setImageUrl(image.imageUrl);
-    setImageFile(null); // Reset file in case of editing an existing image
+    setImageFile(null);
     setEditImageId(image.id);
     setShowForm(true);
+  };
+
+  const handleNext = () => {
+    const nextIndex = (currentIndex + 1) % images.length;
+    setCurrentIndex(nextIndex);
+    setViewImage(images[nextIndex]);
+  };
+
+  const handlePrevious = () => {
+    const prevIndex = (currentIndex - 1 + images.length) % images.length;
+    setCurrentIndex(prevIndex);
+    setViewImage(images[prevIndex]);
   };
 
   useEffect(() => {
@@ -143,130 +146,134 @@ const ImageList = ({ album, onBackClick }) => {
   }, [album]);
 
   return (
-    <>
-      <div className={styles.main}>
-        <div className={styles.top}>
-          <img
-            src={backbtn}
-            alt="back.png"
-            className="back"
-            onClick={onBackClick}
-            loading="lazy"
-          />
-          <h1>
-            {images.length === 0 ? `No Images in ${album.name}` : `Images in ${album.name}`}
-          </h1>
-          <button className="add" onClick={handleToggleForm}>
-            {showForm ? "Cancel" : "Add Image"}
-          </button>
-        </div>
-        {showForm && (
-          <div className={styles.form}>
-            <h1>{editImageId ? "Edit Image" : "Add Image"}</h1>
-            {(imageUrl || imageFile) && (
-              <div className={styles.imgDemo}>
-                <img
-                  className={styles.demo}
-                  src={imageUrl || URL.createObjectURL(imageFile)}
-                  alt="demo"
-                  loading="lazy"
-                />
-                <span onClick={() => (setImageFile(null), setImageUrl(""))}>
-                  <IoMdClose />
-                </span>
-              </div>
-            )}
-            <div className={styles.inputs}>
-              <input
-                className={styles.textInp}
-                type="text"
-                placeholder="Enter Image Title here"
-                required
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                autoFocus
-              />
-              <div className={styles.urlInput}>
-                <input
-                  type="text"
-                  placeholder="Enter Image Url or upload a file"
-                  required
-                  value={
-                    editImageId && !imageFile
-                      ? imageUrl
-                      : imageFile
-                      ? imageFile.name
-                      : imageUrl
-                  }
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  disabled={!!imageFile}
-                  autoFocus
-                />
-                <label htmlFor="fileUpload">
-                  <MdFileUpload />
-                </label>
-                <input
-                  type="file"
-                  name="fileUpload"
-                  id="fileUpload"
-                  onChange={(e) => setImageFile(e.target.files[0])}
-                  style={{ display: "none" }}
-                />
-              </div>
-            </div>
-
-            <div className="imagelist-btn">
-              <button className="clear" onClick={handleClearInput}>
-                Clear
-              </button>
-              <button className="add" onClick={handleAddImage}>
-                {editImageId ? "Update" : "Add"}
-              </button>
-            </div>
-          </div>
-        )}
-
-        <div className={styles.images}>
-          {images.map((image) => (
-            <div className={styles.imageCont} key={image.id}>
-              <div className={styles.btns}>
-                <FaPen
-                  size={19}
-                  color="blue"
-                  className={styles.edit}
-                  onClick={() => handleEditImage(image)}
-                />
-                <RiDeleteBin5Fill
-                  size={19}
-                  color="red"
-                  className={styles.delete}
-                  onClick={() => handleDeleteImage(image.id)}
-                />
-              </div>
+    <div className={styles.main}>
+      <div className={styles.top}>
+        <img
+          src={backbtn}
+          alt="back.png"
+          className="back"
+          onClick={onBackClick}
+          loading="lazy"
+        />
+        <h1>
+          {images.length === 0 ? `No Images in ${album.name}` : `Images in ${album.name}`}
+        </h1>
+        <button className="add" onClick={handleToggleForm}>
+          {showForm ? "Cancel" : "Add Image"}
+        </button>
+      </div>
+      {showForm && (
+        <div className={styles.form}>
+          <h1>{editImageId ? "Edit Image" : "Add Image"}</h1>
+          {(imageUrl || imageFile) && (
+            <div className={styles.imgDemo}>
               <img
-                src={image.imageUrl}
-                alt={image.title}
-                className={styles.mainImage}
+                className={styles.demo}
+                src={imageUrl || URL.createObjectURL(imageFile)}
+                alt="demo"
                 loading="lazy"
               />
-              <h1>{image.title}</h1>
-              <div className={styles.overlay}>
-                <span onClick={() => setViewImage(image)}>
-                  <HiOutlineViewfinderCircle />
-                </span>
-              </div>
-              {viewImage && (
-                <SingleImage
-                  image={viewImage}
-                  handleDeleteImage={handleDeleteImage}
-                  handleClose={() => setViewImage(null)}
-                />
-              )}
+              <span onClick={() => (setImageFile(null), setImageUrl(""))}>
+                <IoMdClose />
+              </span>
             </div>
-          ))}
+          )}
+          <div className={styles.inputs}>
+            <input
+              className={styles.textInp}
+              type="text"
+              placeholder="Enter Image Title here"
+              required
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              autoFocus
+            />
+            <div className={styles.urlInput}>
+              <input
+                type="text"
+                placeholder="Enter Image Url or upload a file"
+                required
+                value={
+                  editImageId && !imageFile
+                    ? imageUrl
+                    : imageFile
+                    ? imageFile.name
+                    : imageUrl
+                }
+                onChange={(e) => setImageUrl(e.target.value)}
+                disabled={!!imageFile}
+                autoFocus
+              />
+              <label htmlFor="fileUpload">
+                <MdFileUpload />
+              </label>
+              <input
+                type="file"
+                name="fileUpload"
+                id="fileUpload"
+                onChange={(e) => setImageFile(e.target.files[0])}
+                style={{ display: "none" }}
+              />
+            </div>
+          </div>
+
+          <div className="imagelist-btn">
+            <button className="clear" onClick={handleClearInput}>
+              Clear
+            </button>
+            <button className="add" onClick={handleAddImage}>
+              {editImageId ? "Update" : "Add"}
+            </button>
+          </div>
         </div>
+      )}
+
+      <div className={styles.images}>
+        {images.map((image, index) => (
+          <div className={styles.imageCont} key={image.id}>
+            <div className={styles.btns}>
+              <FaPen
+                size={19}
+                color="blue"
+                className={styles.edit}
+                onClick={() => handleEditImage(image)}
+              />
+              <RiDeleteBin5Fill
+                size={19}
+                color="red"
+                className={styles.delete}
+                onClick={() => handleDeleteImage(image.id)}
+              />
+            </div>
+            <img
+              src={image.imageUrl}
+              alt={image.title}
+              className={styles.mainImage}
+              loading="lazy"
+            />
+            <h1>{image.title}</h1>
+            <div className={styles.overlay}>
+              <span onClick={() => {
+                setViewImage(image);
+                setCurrentIndex(index);
+              }}>
+                <HiOutlineViewfinderCircle />
+              </span>
+            </div>
+          </div>
+        ))}
       </div>
-    </>
+
+      {viewImage && (
+        <SingleImage
+          image={viewImage}
+          handleClose={() => setViewImage(null)}
+          handleDeleteImage={handleDeleteImage}
+          handleNext={handleNext}
+          handlePrevious={handlePrevious}
+        />
+      )}
+    </div>
   );
 };
 
